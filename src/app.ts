@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(logger('dev'));
 
-app.use('/api/v1', api);
+app.use('/', api);
 const swaggerOptions = {
   swaggerDefinition: {
     openapi: '3.0.0',

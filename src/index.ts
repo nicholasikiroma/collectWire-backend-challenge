@@ -5,7 +5,7 @@ import http from 'http';
 const server = http.createServer(app);
 
 async function startServer() {
-  server.listen(config.port || 8088, (): void => {
+  server.listen(config.port, (): void => {
     logger.info(`[${config.env}] Listening to port ${config.port}`);
   });
 }
