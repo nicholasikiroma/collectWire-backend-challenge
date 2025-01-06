@@ -2,7 +2,15 @@ import { StatusCodes } from 'http-status-codes';
 import { Request, Response } from 'express';
 
 import { ApiError, Asyncly, parseCsvFile } from '../../utils';
-import { flattenMatrix, multiplyMatrix, printMatrix, sumMatrix } from './matrixOps.service';
+import {
+  flattenMatrix,
+  invertMatrix,
+  multiplyMatrix,
+  printMatrix,
+  sumMatrix,
+} from './matrixOps.service';
+import { isSquareMatrix } from './matrixOps.helpers';
+import { SquareMatrix } from './matrixOps.types';
 
 export const echo = Asyncly(async (req: Request, res: Response) => {
   const file = req.file;
@@ -13,7 +21,12 @@ export const echo = Asyncly(async (req: Request, res: Response) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'File path not found');
   }
   const data = await parseCsvFile(file.path);
-  const stringifiedArray = await printMatrix(data);
+
+  if (!isSquareMatrix(data)) {
+    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size');
+  }
+
+  const stringifiedArray = await printMatrix(data as SquareMatrix<string>);
 
   res.status(StatusCodes.OK).json(stringifiedArray);
 });
@@ -27,7 +40,11 @@ export const invert = Asyncly(async (req: Request, res: Response) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'File path not found');
   }
   const data = await parseCsvFile(file.path);
-  const stringifiedArray = await flattenMatrix(data);
+
+  if (!isSquareMatrix(data)) {
+    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size');
+  }
+  const stringifiedArray = await invertMatrix(data as SquareMatrix<string>);
 
   res.status(StatusCodes.OK).json(stringifiedArray);
 });
@@ -42,7 +59,10 @@ export const flatten = Asyncly(async (req: Request, res: Response) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'File path not found');
   }
   const data = await parseCsvFile(file.path);
-  const flattenedArray = await flattenMatrix(data);
+  if (!isSquareMatrix(data)) {
+    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size');
+  }
+  const flattenedArray = await flattenMatrix(data as SquareMatrix<string>);
   res.status(StatusCodes.OK).json(flattenedArray);
 });
 
@@ -55,7 +75,10 @@ export const sum = Asyncly(async (req: Request, res: Response) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'File path not found');
   }
   const data = await parseCsvFile(file.path);
-  const arrSum = await sumMatrix(data);
+  if (!isSquareMatrix(data)) {
+    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size');
+  }
+  const arrSum = await sumMatrix(data as SquareMatrix<string>);
   res.status(StatusCodes.OK).json(arrSum);
 });
 
@@ -68,6 +91,9 @@ export const multiply = Asyncly(async (req: Request, res: Response) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'File path not found');
   }
   const data = await parseCsvFile(file.path);
-  const arrProduct = await multiplyMatrix(data);
+  if (!isSquareMatrix(data)) {
+    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size');
+  }
+  const arrProduct = await multiplyMatrix(data as SquareMatrix<string>);
   res.status(StatusCodes.OK).json(arrProduct);
 });
