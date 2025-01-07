@@ -22,9 +22,7 @@ export const echo = Asyncly(async (req: Request, res: Response) => {
   }
   const data = await parseCsvFile(file.path);
 
-  if (!isSquareMatrix(data)) {
-    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size');
-  }
+  isSquareMatrix(data);
 
   const stringifiedArray = await printMatrix(data as SquareMatrix<string>);
 
@@ -41,9 +39,8 @@ export const invert = Asyncly(async (req: Request, res: Response) => {
   }
   const data = await parseCsvFile(file.path);
 
-  if (!isSquareMatrix(data)) {
-    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size');
-  }
+  isSquareMatrix(data);
+
   const stringifiedArray = await invertMatrix(data as SquareMatrix<string>);
 
   res.status(StatusCodes.OK).json(stringifiedArray);
@@ -59,9 +56,8 @@ export const flatten = Asyncly(async (req: Request, res: Response) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'File path not found');
   }
   const data = await parseCsvFile(file.path);
-  if (!isSquareMatrix(data)) {
-    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size');
-  }
+  isSquareMatrix(data);
+
   const flattenedArray = await flattenMatrix(data as SquareMatrix<string>);
   res.status(StatusCodes.OK).json(flattenedArray);
 });
@@ -75,9 +71,8 @@ export const sum = Asyncly(async (req: Request, res: Response) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'File path not found');
   }
   const data = await parseCsvFile(file.path);
-  if (!isSquareMatrix(data)) {
-    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size');
-  }
+  isSquareMatrix(data);
+
   const arrSum = await sumMatrix(data as SquareMatrix<string>);
   res.status(StatusCodes.OK).json(arrSum);
 });
@@ -91,9 +86,8 @@ export const multiply = Asyncly(async (req: Request, res: Response) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'File path not found');
   }
   const data = await parseCsvFile(file.path);
-  if (!isSquareMatrix(data)) {
-    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size');
-  }
+  isSquareMatrix(data);
+
   const arrProduct = await multiplyMatrix(data as SquareMatrix<string>);
   res.status(StatusCodes.OK).json(arrProduct);
 });

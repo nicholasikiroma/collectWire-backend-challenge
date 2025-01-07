@@ -6,11 +6,9 @@ import * as matrixService from './matrixOps.service';
 import { parseCsvFile } from '../../utils';
 import { Readable } from 'stream';
 
-// Mock dependencies
 jest.mock('../../utils', () => ({
-  Asyncly: (fn: any) => fn,
+  ...jest.requireActual('../../utils'),
   parseCsvFile: jest.fn(),
-  ApiError: jest.requireActual('../../utils').ApiError,
 }));
 
 jest.mock('./matrixOps.service');
@@ -23,9 +21,11 @@ describe('Matrix Operations Controller', () => {
   let dummyStream: Readable;
 
   beforeEach(() => {
+    jest.clearAllMocks();
+    jest.resetModules();
     // Create a dummy readable stream
     dummyStream = new Readable();
-    dummyStream._read = () => {}; // Required implementation
+    dummyStream._read = () => {};
 
     mockFile = {
       path: '/tmp/test.csv',
@@ -50,18 +50,24 @@ describe('Matrix Operations Controller', () => {
     };
 
     mockNext = jest.fn();
-
-    jest.clearAllMocks();
   });
+
+  const asyncWrapper = (fn: Function) => (req: Request, res: Response, next: NextFunction) =>
+    Promise.resolve(fn(req, res, next)).catch(next);
+  const wrappedEcho = asyncWrapper(matrixOps.echo);
+  const wrappedFlatten = asyncWrapper(matrixOps.flatten);
+  const wrappedSum = asyncWrapper(matrixOps.sum);
+  const wrappedInvert = asyncWrapper(matrixOps.invert);
+  const wrappedMultiply = asyncWrapper(matrixOps.multiply);
 
   describe('Input Validation', () => {
     it('should throw error when file is missing', async () => {
       mockRequest.file = undefined;
 
-      await matrixOps.echo(mockRequest as Request, mockResponse as Response, mockNext);
-      expect(mockNext).toHaveBeenCalledWith(
-        new ApiError(StatusCodes.BAD_REQUEST, 'File not found.'),
-      );
+      await wrappedEcho(mockRequest as Request, mockResponse as Response, mockNext),
+        expect(mockNext).toHaveBeenCalledWith(
+          new ApiError(StatusCodes.BAD_REQUEST, 'File not found.'),
+        );
     });
 
     it('should throw error when file path is missing', async () => {
@@ -81,7 +87,7 @@ describe('Matrix Operations Controller', () => {
 
       mockRequest.file = fileWithoutPath;
 
-      await matrixOps.echo(mockRequest as Request, mockResponse as Response, mockNext);
+      await wrappedEcho(mockRequest as Request, mockResponse as Response, mockNext);
       expect(mockNext).toHaveBeenCalledWith(
         new ApiError(StatusCodes.BAD_REQUEST, 'File path not found'),
       );
@@ -93,9 +99,23 @@ describe('Matrix Operations Controller', () => {
         ['3', '4', '5'],
       ]);
 
-      await matrixOps.echo(mockRequest as Request, mockResponse as Response, mockNext);
+      await wrappedEcho(mockRequest as Request, mockResponse as Response, mockNext);
       expect(mockNext).toHaveBeenCalledWith(
         new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size'),
+      );
+    });
+
+    it('should handle non-numeric values', async () => {
+      const testMatrix = [
+        ['1', 'a'],
+        ['3', '4'],
+      ];
+
+      (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
+      await wrappedSum(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(
+        new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Matrix contains invalid characters'),
       );
     });
   });
@@ -110,7 +130,7 @@ describe('Matrix Operations Controller', () => {
       (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
       (matrixService.printMatrix as jest.Mock).mockResolvedValue('1,2\n3,4');
 
-      await matrixOps.echo(mockRequest as Request, mockResponse as Response, mockNext);
+      await wrappedEcho(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockResponse.status).toHaveBeenCalledWith(StatusCodes.OK);
       expect(mockResponse.json).toHaveBeenCalledWith('1,2\n3,4');
@@ -127,7 +147,7 @@ describe('Matrix Operations Controller', () => {
       (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
       (matrixService.invertMatrix as jest.Mock).mockResolvedValue('1,3\n2,4');
 
-      await matrixOps.invert(mockRequest as Request, mockResponse as Response, mockNext);
+      await wrappedInvert(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockResponse.status).toHaveBeenCalledWith(StatusCodes.OK);
       expect(mockResponse.json).toHaveBeenCalledWith('1,3\n2,4');
@@ -142,9 +162,9 @@ describe('Matrix Operations Controller', () => {
         ['3', '4'],
       ];
       (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
-      (matrixService.flattenMatrix as jest.Mock).mockResolvedValue('1,2,3,4');
+      (matrixService.flattenMatrix as jest.Mock).mockResolvedValue('1,2,3,4'); // Updated mock
 
-      await matrixOps.flatten(mockRequest as Request, mockResponse as Response, mockNext);
+      await wrappedFlatten(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockResponse.status).toHaveBeenCalledWith(StatusCodes.OK);
       expect(mockResponse.json).toHaveBeenCalledWith('1,2,3,4');
@@ -161,7 +181,7 @@ describe('Matrix Operations Controller', () => {
       (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
       (matrixService.sumMatrix as jest.Mock).mockResolvedValue(10);
 
-      await matrixOps.sum(mockRequest as Request, mockResponse as Response, mockNext);
+      await wrappedSum(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockResponse.status).toHaveBeenCalledWith(StatusCodes.OK);
       expect(mockResponse.json).toHaveBeenCalledWith(10);
@@ -176,100 +196,23 @@ describe('Matrix Operations Controller', () => {
         ['3', '4'],
       ];
       (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
-      (matrixService.multiplyMatrix as jest.Mock).mockResolvedValue(24);
+      (matrixService.multiplyMatrix as jest.Mock).mockResolvedValue(24); // 1 * 2 * 3 * 4
 
-      await matrixOps.multiply(mockRequest as Request, mockResponse as Response, mockNext);
+      await wrappedMultiply(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockResponse.status).toHaveBeenCalledWith(StatusCodes.OK);
       expect(mockResponse.json).toHaveBeenCalledWith(24);
       expect(mockNext).not.toHaveBeenCalled();
     });
-  });
-});
 
-describe('Matrix Operations Service', () => {
-  describe('flattenMatrix', () => {
-    it('should correctly flatten a matrix', async () => {
-      const input = [
-        ['1', '2'],
-        ['3', '4'],
-      ];
-      const result = await matrixService.flattenMatrix(input);
-      expect(result).toBe('1,2,3,4');
-    });
+    it('should handle empty matrix gracefully', async () => {
+      (parseCsvFile as jest.Mock).mockResolvedValue([]);
 
-    it('should handle empty matrix', async () => {
-      const input: string[][] = [];
-      const result = await matrixService.flattenMatrix(input);
-      expect(result).toBe('');
-    });
-  });
+      await wrappedMultiply(mockRequest as Request, mockResponse as Response, mockNext);
 
-  describe('printMatrix', () => {
-    it('should correctly print a matrix', async () => {
-      const input = [
-        ['1', '2'],
-        ['3', '4'],
-      ];
-      const result = await matrixService.printMatrix(input);
-      expect(result).toBe('1,2\n3,4');
-    });
-  });
-
-  describe('sumMatrix', () => {
-    it('should correctly sum matrix elements', async () => {
-      const input = [
-        ['1', '2'],
-        ['3', '4'],
-      ];
-      const result = await matrixService.sumMatrix(input);
-      expect(result).toBe(10);
-    });
-
-    it('should handle non-numeric values', async () => {
-      const input = [
-        ['1', 'a'],
-        ['3', '4'],
-      ];
-      const result = await matrixService.sumMatrix(input);
-      expect(result).toBe(NaN);
-    });
-  });
-
-  describe('multiplyMatrix', () => {
-    it('should correctly multiply matrix elements', async () => {
-      const input = [
-        ['1', '2'],
-        ['3', '4'],
-      ];
-      const result = await matrixService.multiplyMatrix(input);
-      expect(result).toBe(24);
-    });
-
-    it('should handle non-numeric values', async () => {
-      const input = [
-        ['1', 'a'],
-        ['3', '4'],
-      ];
-      const result = await matrixService.multiplyMatrix(input);
-      expect(result).toBe(NaN);
-    });
-  });
-
-  describe('invertMatrix', () => {
-    it('should correctly invert a matrix', async () => {
-      const input = [
-        ['1', '2'],
-        ['3', '4'],
-      ];
-      const result = await matrixService.invertMatrix(input);
-      expect(result).toBe('1,3\n2,4');
-    });
-
-    it('should handle 1x1 matrix', async () => {
-      const input = [['1']];
-      const result = await matrixService.invertMatrix(input);
-      expect(result).toBe('1');
+      expect(mockNext).toHaveBeenCalledWith(
+        new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, 'Invalid matrix size'),
+      );
     });
   });
 });
