@@ -36,5 +36,5 @@ export async function invertMatrix<T>(input: SquareMatrix<T>): Promise<string> {
     transposed.push(newRow);
   }
 
-  return printMatrix(transposed);
+  return transposed.join('\n');
 }

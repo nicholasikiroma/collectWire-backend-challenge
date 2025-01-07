@@ -3,13 +3,10 @@ import { StatusCodes } from 'http-status-codes';
 import { ApiError } from '../../utils';
 import * as matrixOps from './matrixOps.controller';
 import * as matrixService from './matrixOps.service';
-import { parseCsvFile } from '../../utils';
 import { Readable } from 'stream';
+import { validateAndParseFile } from './matrixOps.helpers';
 
-jest.mock('../../utils', () => ({
-  ...jest.requireActual('../../utils'),
-  parseCsvFile: jest.fn(),
-}));
+jest.mock('./matrixOps.helpers');
 
 jest.mock('./matrixOps.service');
 
@@ -63,6 +60,7 @@ describe('Matrix Operations Controller', () => {
   describe('Input Validation', () => {
     it('should throw error when file is missing', async () => {
       mockRequest.file = undefined;
+      (validateAndParseFile as jest.Mock).mockRejectedValue(new Error('File not found.'));
 
       await wrappedEcho(mockRequest as Request, mockResponse as Response, mockNext),
         expect(mockNext).toHaveBeenCalledWith(
@@ -86,6 +84,7 @@ describe('Matrix Operations Controller', () => {
       };
 
       mockRequest.file = fileWithoutPath;
+      (validateAndParseFile as jest.Mock).mockRejectedValue(new Error('File path not found'));
 
       await wrappedEcho(mockRequest as Request, mockResponse as Response, mockNext);
       expect(mockNext).toHaveBeenCalledWith(
@@ -94,10 +93,7 @@ describe('Matrix Operations Controller', () => {
     });
 
     it('should throw error for non-square matrix', async () => {
-      (parseCsvFile as jest.Mock).mockResolvedValue([
-        ['1', '2'],
-        ['3', '4', '5'],
-      ]);
+      (validateAndParseFile as jest.Mock).mockRejectedValue(new Error('Invalid matrix size'));
 
       await wrappedEcho(mockRequest as Request, mockResponse as Response, mockNext);
       expect(mockNext).toHaveBeenCalledWith(
@@ -111,7 +107,9 @@ describe('Matrix Operations Controller', () => {
         ['3', '4'],
       ];
 
-      (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
+      (validateAndParseFile as jest.Mock).mockRejectedValue(
+        new Error('Matrix contains invalid characters'),
+      );
       await wrappedSum(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(
@@ -127,7 +125,7 @@ describe('Matrix Operations Controller', () => {
         ['1', '2'],
         ['3', '4'],
       ];
-      (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
+      (validateAndParseFile as jest.Mock).mockResolvedValue(testMatrix);
       (matrixService.printMatrix as jest.Mock).mockResolvedValue('1,2\n3,4');
 
       await wrappedEcho(mockRequest as Request, mockResponse as Response, mockNext);
@@ -144,7 +142,7 @@ describe('Matrix Operations Controller', () => {
         ['1', '2'],
         ['3', '4'],
       ];
-      (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
+      (validateAndParseFile as jest.Mock).mockResolvedValue(testMatrix);
       (matrixService.invertMatrix as jest.Mock).mockResolvedValue('1,3\n2,4');
 
       await wrappedInvert(mockRequest as Request, mockResponse as Response, mockNext);
@@ -161,7 +159,7 @@ describe('Matrix Operations Controller', () => {
         ['1', '2'],
         ['3', '4'],
       ];
-      (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
+      (validateAndParseFile as jest.Mock).mockResolvedValue(testMatrix);
       (matrixService.flattenMatrix as jest.Mock).mockResolvedValue('1,2,3,4'); // Updated mock
 
       await wrappedFlatten(mockRequest as Request, mockResponse as Response, mockNext);
@@ -178,7 +176,7 @@ describe('Matrix Operations Controller', () => {
         ['1', '2'],
         ['3', '4'],
       ];
-      (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
+      (validateAndParseFile as jest.Mock).mockResolvedValue(testMatrix);
       (matrixService.sumMatrix as jest.Mock).mockResolvedValue(10);
 
       await wrappedSum(mockRequest as Request, mockResponse as Response, mockNext);
@@ -195,7 +193,7 @@ describe('Matrix Operations Controller', () => {
         ['1', '2'],
         ['3', '4'],
       ];
-      (parseCsvFile as jest.Mock).mockResolvedValue(testMatrix);
+      (validateAndParseFile as jest.Mock).mockResolvedValue(testMatrix);
       (matrixService.multiplyMatrix as jest.Mock).mockResolvedValue(24); // 1 * 2 * 3 * 4
 
       await wrappedMultiply(mockRequest as Request, mockResponse as Response, mockNext);
@@ -206,7 +204,7 @@ describe('Matrix Operations Controller', () => {
     });
 
     it('should handle empty matrix gracefully', async () => {
-      (parseCsvFile as jest.Mock).mockResolvedValue([]);
+      (validateAndParseFile as jest.Mock).mockRejectedValue(new Error('Invalid matrix size'));
 
       await wrappedMultiply(mockRequest as Request, mockResponse as Response, mockNext);
 
