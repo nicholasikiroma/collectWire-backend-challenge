@@ -1,23 +1,53 @@
 import { SquareMatrix } from './matrixOps.types';
 
+/**
+ * Flattens a square matrix into a comma-separated string.
+ *
+ * @param input - The input square matrix to be flattened.
+ * @returns A promise that resolves to a string representing the flattened matrix.
+ */
 export async function flattenMatrix<T>(input: SquareMatrix<T>): Promise<string> {
-  return input.flat().join(',');
+  return input.flat(Infinity).join(',');
 }
 
+/**
+ * Prints the square matrix as a string where each element is separated by a newline.
+ *
+ * @param input - The input square matrix to be printed.
+ * @returns A promise that resolves to a string representing the matrix with each element on a new line.
+ */
 export async function printMatrix<T>(input: SquareMatrix<T>): Promise<string> {
-  return input.flat().join('\n');
+  return input.map((row) => row.join(',')).join('\n');
 }
 
+/**
+ * Sums all elements in the square matrix and returns the result.
+ *
+ * @param input - The input square matrix to sum.
+ * @returns A promise that resolves to the sum of all elements in the matrix.
+ */
 export async function sumMatrix<T>(input: SquareMatrix<T>): Promise<number> {
-  const newArr = input.flat().map(Number);
+  const newArr = input.flat(Infinity).map(Number);
   return newArr.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
 }
 
+/**
+ * Multiplies all elements in the square matrix and returns the result.
+ *
+ * @param input - The input square matrix to multiply.
+ * @returns A promise that resolves to the product of all elements in the matrix.
+ */
 export async function multiplyMatrix<T>(input: SquareMatrix<T>): Promise<number> {
-  const newArr = input.flat().map(Number);
+  const newArr = input.flat(Infinity).map(Number);
   return newArr.reduce((accumulator, currentValue) => accumulator * currentValue, 1);
 }
 
+/**
+ * Inverts the square matrix by transposing it. For a 1D matrix, it simply returns the element.
+ *
+ * @param input - The input square matrix to invert.
+ * @returns A promise that resolves to a string representing the transposed matrix, or the matrix element in case of a 1D matrix.
+ */
 export async function invertMatrix<T>(input: SquareMatrix<T>): Promise<string> {
   const size = input.length;
 
@@ -36,5 +66,5 @@ export async function invertMatrix<T>(input: SquareMatrix<T>): Promise<string> {
     transposed.push(newRow);
   }
 
-  return transposed.join('\n');
+  return printMatrix(transposed);
 }

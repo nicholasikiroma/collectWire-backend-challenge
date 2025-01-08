@@ -118,7 +118,6 @@ describe('Matrix Operations Controller', () => {
     });
   });
 
-  // Rest of the tests remain the same...
   describe('Echo Operation', () => {
     it('should correctly process valid square matrix', async () => {
       const testMatrix = [
