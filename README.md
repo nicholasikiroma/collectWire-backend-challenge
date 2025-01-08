@@ -57,3 +57,7 @@ To run the tests for the app, execute the following command:
 ```bash
 npm run test
 ```
+
+### Test with Swagger
+
+You can test the endpoints using Swagger UI by visiting the route **[localhost:8088/api/docs](localhost:8088/api/docs)** in your browser while the server is running.
